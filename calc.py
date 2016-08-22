@@ -9,9 +9,8 @@ class Main(tk.Tk):
         super().__init__()
         self.resizable(width=0, height=0)
         self.title("Calculator")
-        self.digit = []
-        self.engine = Operations(self.digit)
-        self.indicator = tk.Label(self, relief='sunken', width=30, text=0, anchor='e', padx=10)
+        self.engine = Operations()
+        self.indicator = tk.Label(self, relief='sunken', width=30, text=self.engine.digit, anchor='e')
         font_config(self.indicator, size=20)
         del_button = CalcButton(self, text="←", bold=True)
         m_button = CalcButton(self, text="M", bold=True)
@@ -43,6 +42,7 @@ class Main(tk.Tk):
         self.place_buttons(oper_buttons, funcbuttons_frame)
         numbuttons_frame.grid_columnconfigure('all', minsize=130)
         funcbuttons_frame.grid_columnconfigure('all', minsize=90)
+        # Превращение списка списков в один список: [x for sublist in l for x in sublist]
         self.mainloop()
 
     def place_buttons(self, buttons, parent):
@@ -50,10 +50,13 @@ class Main(tk.Tk):
         for row in buttons:
             c = 0
             for button in row:
-                CalcButton(parent, text=button, textsize=20, command=(lambda x=button: self.engine.button_press(
+                CalcButton(parent, text=button, textsize=20, command=(lambda x=button: self.press_button(
                     x))).grid(row=r, column=c, sticky='news', padx=5, pady=5)
                 c += 1
             r += 1
+
+    def press_button(self, button):
+        self.indicator.config(text=self.engine.button_press(button))
 
 
 class CalcButton(tk.Button):
@@ -63,11 +66,34 @@ class CalcButton(tk.Button):
 
 
 class Operations:
-    def __init__(self, digit):
-        self.digit = digit
+    digit = ["0"]
+    previous = 0
+    operation = None
+    clear = False
 
     def button_press(self, button):
-        print(button)
+        if button == ".":
+            self.digit.append(button)
+            res = self.digit[:-2]
+        elif button in ("+", "-", "/", "•"):
+            res = self.calculate(button)
+        elif button == "=":
+            res = self.calculate()
+        elif int(button) in range(0, 10):
+            self.digit.append(button)
+            res = self.digit
+        return res
+
+    def calculate(self, operation=None):
+        if self.operation:
+            exec("self.previous = {0} {1} {2}".format(self.previous, self.operation, float("".join(map(str, self.digit)))))
+            res = list(str(self.previous))
+        else:
+            self.previous = float("".join(map(str, self.digit)))
+            res = self.digit
+        self.digit = ["0"]
+        self.operation = "*" if operation == "•" else operation
+        return res
 
 
 def font_config(unit, size=9, bold=False, italic=False):
