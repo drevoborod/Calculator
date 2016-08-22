@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import math
 import tkinter as tk
 import tkinter.font as fontconfig
 
@@ -12,24 +13,14 @@ class Main(tk.Tk):
         self.engine = Operations()
         self.indicator = tk.Label(self, relief='sunken', width=30, text=self.engine.digit, anchor='e')
         font_config(self.indicator, size=20)
-        del_button = CalcButton(self, text="←", bold=True)
-        m_button = CalcButton(self, text="M", bold=True)
-        mc_button = CalcButton(self, text="MC", bold=True)
-        mr_button = CalcButton(self, text="MR", bold=True)
-        mplus_button = CalcButton(self, text="M-", bold=True)
-        mminus_button = CalcButton(self, text="M+", bold=True)
-        ce_button = CalcButton(self, text="CE", bold=True)
-        c_button = CalcButton(self, text="C", bold=True)
-        buttons_frame = tk.Frame(self)
         self.indicator.grid(row=0, column=0, columnspan=7, padx=5, pady=5)
-        del_button.grid(row=0, column=7, padx=5, pady=5, sticky='news')
-        m_button.grid(row=1, column=0, padx=5, pady=5, sticky='news')
-        mc_button.grid(row=1, column=1, padx=5, pady=5, sticky='news')
-        mr_button.grid(row=1, column=2, padx=5, pady=5, sticky='news')
-        mplus_button.grid(row=1, column=3, padx=5, pady=5, sticky='news')
-        mminus_button.grid(row=1, column=4, padx=5, pady=5, sticky='news')
-        ce_button.grid(row=1, column=6, padx=5, pady=5, sticky='news')
-        c_button.grid(row=1, column=7, padx=5, pady=5, sticky='news')
+        CalcButton(self, text="←", bold=True, command=(lambda: self.press_button("←"))).grid(row=0, column=7, padx=5, pady=5, sticky='news')
+        for index, value in enumerate(("M", "MC", "MR", "M-", "M+")):
+            CalcButton(self, text=value, bold=True, command=(lambda x=value: self.press_button(x))).grid(
+                row=1, column=index, padx=5, pady=5, sticky='news')
+        CalcButton(self, text="CE", bold=True, command=(lambda: self.press_button("CE"))).grid(row=1, column=6, padx=5, pady=5, sticky='news')
+        CalcButton(self, text="C", bold=True, command=(lambda: self.press_button("C"))).grid(row=1, column=7, padx=5, pady=5, sticky='news')
+        buttons_frame = tk.Frame(self)
         buttons_frame.grid(row=2, column=0, columnspan=8, pady=10)
         self.grid_columnconfigure('all', minsize=70)
         numbuttons_frame = tk.Frame(buttons_frame)
@@ -75,11 +66,21 @@ class Operations:
         if button == ".":
             self.digit.append(button)
             res = self.digit[:-2]
-        elif button in ("+", "-", "/", "•"):
+        elif button in ("+", "-", "/", "•", "x^y"):
             res = self.calculate(button)
+        elif button == "%":
+            res = self.calculate_procent()
+        elif button == "√":
+            self.digit = ["0"]
+            self.previous = math.sqrt(float("".join(map(str, self.digit))))
+            res = self.previous
         elif button == "=":
             res = self.calculate()
-        elif int(button) in range(0, 10):
+        elif button == "←":
+            self.digit.pop()
+            res = self.digit
+        # ToDO: M, MC, ...
+        elif button in range(0, 10):
             self.digit.append(button)
             res = self.digit
         return res
@@ -92,8 +93,15 @@ class Operations:
             self.previous = float("".join(map(str, self.digit)))
             res = self.digit
         self.digit = ["0"]
-        self.operation = "*" if operation == "•" else operation
+        if operation == "•":
+            self.operation = "*"
+        elif operation == "x^y":
+            self.operation = "^"
+        else:
+            self.operation = operation
         return res
+
+    def calculate_procent(self): pass
 
 
 def font_config(unit, size=9, bold=False, italic=False):
