@@ -85,8 +85,11 @@ class Operations:
     operation = None
     memory = None
     minus = False
+    prev_button = None
+    funcbuttons = "+", "-", "/", "•", "x^y", "%"
 
     def button_press(self, button):
+        self._debug(button)
         """Main entry point for every button press."""
         res = self.digit
         if len(self.digit) < 31:
@@ -94,8 +97,11 @@ class Operations:
                 if "." not in self.digit:
                     self.digit.append(button)
                     res = self.digit[:-1]
-            elif button in ("+", "-", "/", "•", "x^y", "%"):
-                res = self.calculate(button)
+            elif button in (self.funcbuttons):
+                if self.prev_button not in self.funcbuttons:
+                    res = self.calculate(button)
+                else:
+                    self._set_operation(button)
             elif button == "√":
                 if not self.minus:
                     self.previous = math.sqrt(self._digit_f())
@@ -140,30 +146,28 @@ class Operations:
                 res = self.digit
         if len(res) >= 3 and res[-1] == "0" and res[-2] == ".":
             res = res[:-2]
+        self.prev_button = button
         return "".join(res)
 
     def calculate(self, operation=None):
         """All mathematical operations."""
+        res = self.digit
         if self.operation == "%":
             res = self.calculate_percent()
         elif self.operation:
-            if self.operation == "^":
-                exec("self.previous = {0} {1} {3}{2}".format(int(self.previous), self.operation, int(self._digit_f()),
-                                                             "-" if self.minus else ""))
-            else:
-                exec("self.previous = {0} {1} {3}{2}".format(self.previous, self.operation, self._digit_f(),
-                                                             "-" if self.minus else ""))
-            res = list(str(self.previous))
+            if self.prev_button not in self.funcbuttons:
+                if self.operation == "^":
+                    exec("self.previous = {0} {1} {3}{2}".format(int(self.previous), self.operation, int(self._digit_f()),
+                                                                 "-" if self.minus else ""))
+                    res = list(str(self.previous))
+                else:
+                    exec("self.previous = {0} {1} {3}{2}".format(self.previous, self.operation, self._digit_f(),
+                                                                 "-" if self.minus else ""))
+                    res = list(str(self.previous))
         else:
             self.previous = self._digit_f()
-            res = self.digit
         self.digit = ["0"]
-        if operation == "•":
-            self.operation = "*"
-        elif operation == "x^y":
-            self.operation = "^"
-        else:
-            self.operation = operation
+        self._set_operation(operation)
         if res[0] == "-":
             self.minus = True
             res.pop(0)
@@ -175,6 +179,15 @@ class Operations:
     def calculate_memory(self, operation):
         if self.memory:
             exec("self.memory = {0} {1} {2}".format(self.memory, operation, self._digit_f()))
+
+    def _set_operation(self, button):
+        """Set contents of 'operation' class variable."""
+        if button == "•":
+            self.operation = "*"
+        elif button == "x^y":
+            self.operation = "^"
+        else:
+            self.operation = button
 
     def _del(self):
         """Remove one char from indicator."""
@@ -191,6 +204,17 @@ class Operations:
         if self.minus:
             res.insert(0, "-")
         return float("".join(res))
+
+    def _debug(self, button=None):
+        print("\n")
+        if button:
+            print("current button:", button)
+        print("digit:", self.digit)
+        print("previous:", self.previous)
+        print("operation:", self.operation)
+        print("memory", self.memory)
+        print("minus:", self.minus)
+        print("prev_button:", self.prev_button)
 
 
 def font_config(unit, size=9, bold=False, italic=False):
