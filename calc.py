@@ -11,7 +11,7 @@ class Main(tk.Tk):
         self.resizable(width=0, height=0)
         self.title("Calculator")
         self.engine = Operations()
-        self.indicator = tk.Label(self, relief='sunken', width=30, text=self.engine.digit, anchor='e')
+        self.indicator = tk.Label(self, relief='sunken', width=30, text=self.engine.digit, anchor='e', padx=10)
         font_config(self.indicator, size=20)
         self.indicator.grid(row=0, column=0, columnspan=7, padx=5, pady=5)
         CalcButton(self, text="←", bold=True, command=(lambda: self.press_button("←"))).grid(row=0, column=7, padx=5, pady=5, sticky='news')
@@ -60,37 +60,61 @@ class Operations:
     digit = ["0"]
     previous = 0
     operation = None
-    clear = False
+    memory = None
 
     def button_press(self, button):
-        if button == ".":
-            self.digit.append(button)
-            res = self.digit[:-2]
-        elif button in ("+", "-", "/", "•", "x^y"):
-            res = self.calculate(button)
-        elif button == "%":
-            res = self.calculate_procent()
-        elif button == "√":
-            self.digit = ["0"]
-            self.previous = math.sqrt(float("".join(map(str, self.digit))))
-            res = self.previous
-        elif button == "=":
-            res = self.calculate()
-        elif button == "←":
-            self.digit.pop()
+        if len(self.digit) < 31:
+            if button == ".":
+                self.digit.append(button)
+                res = self.digit[:-1]
+            elif button in ("+", "-", "/", "•", "x^y", "%"):
+                res = self.calculate(button)
+            elif button == "√":
+                self.digit = ["0"]
+                self.previous = math.sqrt(self._digit_f())
+                res = self.previous
+            elif button == "=":
+                res = self.calculate()
+            elif button == "←":
+                self._del()
+                res = self.digit
+            elif button == "M":
+                self.memory = self._digit_f()
+                res = self.digit
+            elif button == "MC":
+                self.memory = None
+                res = self.digit
+            elif button == "MR":
+                self.digit = list(str(self.memory))
+                res = self.digit
+            elif button == "M+" or button == "M-":
+                self.calculate_memory(button[-1])
+                res = self.digit
+            elif button == "CE":
+                self.digit = ["0"]
+                res = self.digit
+            elif button == "C":
+                self.digit = ["0"]
+                self.previous = 0
+                self.operation = None
+                res = self.digit
+            elif button in range(0, 10):
+                if self.digit[0] == "0" and len(self.digit) == 1:
+                    self.digit.pop(0)
+                self.digit.append(str(button))
+                res = self.digit
+        else:
             res = self.digit
-        # ToDO: M, MC, ...
-        elif button in range(0, 10):
-            self.digit.append(button)
-            res = self.digit
-        return res
+        return "".join(res)
 
     def calculate(self, operation=None):
-        if self.operation:
-            exec("self.previous = {0} {1} {2}".format(self.previous, self.operation, float("".join(map(str, self.digit)))))
+        if self.operation == "%":
+            res = self.calculate_percent()
+        elif self.operation:
+            exec("self.previous = {0} {1} {2}".format(self.previous, self.operation, self._digit_f()))
             res = list(str(self.previous))
         else:
-            self.previous = float("".join(map(str, self.digit)))
+            self.previous = self._digit_f()
             res = self.digit
         self.digit = ["0"]
         if operation == "•":
@@ -101,11 +125,26 @@ class Operations:
             self.operation = operation
         return res
 
-    def calculate_procent(self): pass
+    def calculate_percent(self): pass
+
+    def calculate_memory(self, operation):
+        if self.memory:
+            exec("self.memory = {0} {1} {2}".format(self.memory, operation, self._digit_f()))
+
+    def _del(self):
+        if len(self.digit) > 0:
+            self.digit.pop()
+            if len(self.digit) == 0:
+                self.digit = ["0"]
+            elif self.digit[-1] == ".":
+                self.digit.pop()
+
+    def _digit_f(self):
+        return float("".join(self.digit))
 
 
 def font_config(unit, size=9, bold=False, italic=False):
-    """Font size of a given unit change."""
+    """Change font of a provided unit."""
     fontname = fontconfig.Font(font=unit['font']).actual()['family']
     font_params = [fontname, size]
     if bold:
