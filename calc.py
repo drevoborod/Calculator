@@ -48,6 +48,16 @@ class Main(tk.Tk):
         numbuttons_frame.grid_columnconfigure('all', minsize=150)
         funcbuttons_frame.grid_columnconfigure('all', minsize=90)
         # Превращение списка списков в один список: [x for sublist in l for x in sublist]
+        for number in range(0, 10):
+            self.bind("%d" % number, lambda e, x=number: self.press_button(x))
+        self.bind("<BackSpace>", lambda e: self.press_button("←"))
+        self.bind("/", lambda e: self.press_button("÷"))
+        self.bind("*", lambda e: self.press_button("×"))
+        for number in ("-", "+", "%", "=", "."):
+            self.bind("%s" % number, lambda e, x=number: self.press_button(x))
+        self.bind("<Escape>", lambda e: self.press_button("C"))
+        self.bind("<Return>", lambda e: self.press_button("="))
+        self.bind("<Control-c>", lambda e: self.copy())
         self.mainloop()
 
     def place_buttons(self, buttons, parent):
@@ -83,6 +93,14 @@ class Main(tk.Tk):
             self.second_indicator.insert('end', "-" if self.engine.memory else "\n-")
         self.second_indicator.config(state="disabled")
 
+    def copy(self):
+        """Copy indicator value to clipboard."""
+        self.indicator.clipboard_clear()
+        res = self.indicator.cget("text")
+        if self.engine.minus:
+            res = "-" + res
+        self.indicator.clipboard_append(res)
+
 
 class CalcButton(tk.Button):
     def __init__(self, parent, textsize=15, bold=False, italic=False, **options):
@@ -111,6 +129,7 @@ class Operations:
         if self.default:
             self.digit = ["0"]
             self.default = False
+            self.minus = False
         if len(self.digit) < 31:
             if button == ".":
                 if "." not in self.digit:
@@ -236,8 +255,8 @@ class Operations:
 
     def _debug(self, button=None):
         print("\n")
-        #if button:
-        #    print("current button:", button)
+        if button:
+            print("current button:", button)
         print("digit:", self.digit)
         print("previous:", self.previous, type(self.previous))
         print("operation:", self.operation)
@@ -259,5 +278,3 @@ def font_config(unit, size=9, bold=False, italic=False):
 
 if __name__ == "__main__":
     Main()
-
-# ToDo: поддержать клавиатуру.
