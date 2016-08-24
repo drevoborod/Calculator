@@ -130,37 +130,38 @@ class Operations:
             self.digit = ["0"]
             self.default = False
             self.minus = False
-        if len(self.digit) < 31:
-            if button == ".":
-                if "." not in self.digit:
-                    self.digit.append(button)
-            elif button in self.funcbuttons:
-                self.digit = self.calculate(button)
-            elif button == "√":
-                if not self.minus:
-                    self.previous = math.sqrt(self._digit_f())
-                    self.default = True
-                    self.digit = list(str(self.previous))
-                else:
-                    showinfo("Error", "Cannot calculate square root from a negative number.")
-            elif button == "=":
-                self.digit = self.calculate()
-            elif button == "←":
-                self._del()
-            elif button == "CE":
+        if button == ".":
+            if "." not in self.digit and len(self.digit) < 30:
+                self.digit.append(button)
+        elif button in self.funcbuttons:
+            self.digit = self.calculate(button)
+        elif button == "√":
+            if not self.minus:
+                self.previous = math.sqrt(self._digit_f())
+                self.default = True
+                self.digit = self._remove_tail(list(str(self.previous)))
+            else:
+                showinfo("Error", "Cannot calculate square root from a negative number.")
+                self.default = True
+        elif button == "=":
+            self.digit = self.calculate()
+        elif button == "←":
+            self._del()
+        elif button == "CE":
+            self.minus = False
+            self.digit = ["0"]
+        elif button == "C":
+            self.previous = 0
+            self.operation = None
+            self.minus = False
+            self.digit = ["0"]
+        elif button == "±":
+            if self.minus:
                 self.minus = False
-                self.digit = ["0"]
-            elif button == "C":
-                self.previous = 0
-                self.operation = None
-                self.minus = False
-                self.digit = ["0"]
-            elif button == "±":
-                if self.minus:
-                    self.minus = False
-                else:
-                    self.minus = True
-            elif button in range(0, 10):
+            else:
+                self.minus = True
+        elif button in range(0, 10):
+            if len(self.digit) < 31:
                 if self.digit[0] == "0" and len(self.digit) == 1:
                     self.digit.pop(0)
                 self.digit.append(str(button))
