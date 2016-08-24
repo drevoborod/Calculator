@@ -25,7 +25,7 @@ class Main(tk.Tk):
         # Different buttons:
         CalcButton(self, text="←", bold=True, command=(lambda: self.press_button("←"))).grid(row=0, column=8, padx=5, pady=5, sticky='news')
         for index, value in enumerate(("M", "MC", "MR", "M-", "M+")):
-            CalcButton(self, text=value, bold=True, command=(lambda x=value: self.press_button(x))).grid(
+            CalcButton(self, text=value, bold=True, command=(lambda x=value: self.memory_button(x))).grid(
                 row=1, column=index, padx=5, pady=5, sticky='news')
         CalcButton(self, text="CE", bold=True, command=(lambda: self.press_button("CE"))).grid(row=1, column=7, padx=5, pady=5, sticky='news')
         CalcButton(self, text="C", bold=True, command=(lambda: self.press_button("C"))).grid(row=1, column=8, padx=5, pady=5, sticky='news')
@@ -60,17 +60,26 @@ class Main(tk.Tk):
             r += 1
 
     def press_button(self, button):
-        self.indicator.config(text=self.engine.button_press(button))
+        self.engine.button_press(button)
+        self.change_indicator()
+
+    def memory_button(self, button):
+        self.engine.memory_actions(button)
+        self.change_indicator()
+
+    def change_indicator(self):
+        self.indicator.config(text="".join(self.engine.digit))
+        self.second_indicator_change()
+
+    def second_indicator_change(self):
         self.second_indicator.config(state="normal")
         self.second_indicator.delete(1.0, 'end')
         if self.engine.memory:
             self.second_indicator.insert('end', "M")
         if self.engine.minus:
-            if self.engine.memory:
-                self.second_indicator.insert('end', "-")
-            else:
-                self.second_indicator.insert('end', "\n-")
+            self.second_indicator.insert('end', "-" if self.engine.memory else "\n-")
         self.second_indicator.config(state="disabled")
+
 
 class CalcButton(tk.Button):
     def __init__(self, parent, textsize=15, bold=False, italic=False, **options):
@@ -80,58 +89,51 @@ class CalcButton(tk.Button):
 
 class Operations:
     """Calculator engine."""
-    digit = ["0"]
-    previous = 0
-    operation = None
-    memory = None
-    minus = False
-    prev_button = None
+    digit = ["0"]       # Indicator contents.
+    previous = 0        # Previous value for mathematical operation.
+    operation = None    # Mathematical operation sign.
+    memory = None       # Contents of calculator's memory.
+    minus = False       # Is number negative.
+    prev_button = None  # Previous pressed button.
+    default = False     # Should indicator contents be set to default value.
     funcbuttons = "+", "-", "÷", "×", "x^y", "%"
 
     def button_press(self, button):
         """Main entry point for every button press."""
         #self._debug(button)
-        res = self.digit
+        if self.prev_button in (self.funcbuttons + ("√", "=")):
+            if button in (self.funcbuttons + ("√", "=")):
+                self.default = False
+            else:
+                self.default = True
+        if self.default:
+            self.digit = ["0"]
+            self.default = False
         if len(self.digit) < 31:
             if button == ".":
                 if "." not in self.digit:
                     self.digit.append(button)
-                    res = self.digit[:-1]
-            elif button in (self.funcbuttons):
-                if self.prev_button not in self.funcbuttons:
-                    res = self.calculate(button)
-                else:
-                    self._set_operation(button)
+            elif button in self.funcbuttons:
+                self.digit = self.calculate(button)
             elif button == "√":
                 if not self.minus:
                     self.previous = math.sqrt(self._digit_f())
-                    self.digit = ["0"]
-                    res = list(str(self.previous))
+                    self.default = True
+                    self.digit = list(str(self.previous))
                 else:
                     showinfo("Error", "Cannot calculate square root from a negative number.")
             elif button == "=":
-                res = self.calculate()
+                self.digit = self.calculate()
             elif button == "←":
                 self._del()
-                res = self.digit
-            elif button == "M":
-                self.memory = self._digit_f()
-            elif button == "MC":
-                self.memory = None
-            elif button == "MR":
-                if self.memory:
-                    self.digit = list(str(self.memory))
-                res = self.digit
-            elif button == "M+" or button == "M-":
-                self.calculate_memory(button[-1])
             elif button == "CE":
                 self.minus = False
-                res = ["0"]
+                self.digit = ["0"]
             elif button == "C":
                 self.previous = 0
                 self.operation = None
                 self.minus = False
-                res = ["0"]
+                self.digit = ["0"]
             elif button == "±":
                 if self.minus:
                     self.minus = False
@@ -141,13 +143,22 @@ class Operations:
                 if self.digit[0] == "0" and len(self.digit) == 1:
                     self.digit.pop(0)
                 self.digit.append(str(button))
-                res = self.digit
-        if len(res) >= 3 and res[-1] == "0" and res[-2] == ".":
-            res = res[:-2]
-        if button in (self.funcbuttons + ("√", "=", "CE", "C")):
-            self.digit = ["0"]
         self.prev_button = button
-        return "".join(res)
+
+    def memory_actions(self, button):
+        if button == "M":
+            self.memory = self._digit_f()
+        elif button == "MC":
+            self.memory = None
+        elif button == "MR":
+            if self.memory:
+                self.minus = False
+                self.digit = self._set_minus(list(str(self.memory)))
+                self.digit = self._remove_tail(self.digit)
+        elif button == "M+" or button == "M-":
+            self.calculate_memory(button[-1])
+        if self.prev_button in (self.funcbuttons + ("√", "=")):
+            self.default = True
 
     def calculate(self, operation=None):
         """All mathematical operations."""
@@ -156,20 +167,23 @@ class Operations:
             res = self.calculate_percent()
         elif self.operation:
             if self.prev_button not in self.funcbuttons:
-                if self.operation == "^":
-                    exec("self.previous = {0} {1} {3}{2}".format(int(self.previous), self.operation, int(self._digit_f()),
-                                                                 "-" if self.minus else ""))
+                try:
+                    if self.operation == "^":
+                        exec("self.previous = {0} {1} {3}{2}".format(int(self.previous), self.operation, int(self._digit_f()),
+                                                                     "-" if self.minus else ""))
+                    else:
+                        exec("self.previous = {0} {1} {3}{2}".format(self.previous, self.operation, self._digit_f(),
+                                                                     "-" if self.minus else ""))
+                except ZeroDivisionError:
+                    showinfo("Error", "Division by zero.")
+                    self.default = True
                 else:
-                    exec("self.previous = {0} {1} {3}{2}".format(self.previous, self.operation, self._digit_f(),
-                                                                 "-" if self.minus else ""))
-                res = list(str(self.previous))
+                    res = list(str(self.previous))
         else:
             self.previous = self._digit_f()
         self._set_operation(operation)
-        if res[0] == "-":
-            self.minus = True
-            res.pop(0)
-        return res
+        res = self._set_minus(res)
+        return self._remove_tail(res)
 
     def calculate_percent(self):
         return list(str(self.previous / 100 * self._digit_f()))
@@ -189,6 +203,12 @@ class Operations:
         else:
             self.operation = button
 
+    def _set_minus(self, value):
+        if value[0] == "-":
+            self.minus = True
+            value.pop(0)
+        return value
+
     def _del(self):
         """Remove one char from indicator."""
         if len(self.digit) > 0:
@@ -197,6 +217,11 @@ class Operations:
                 self.digit = ["0"]
             elif self.digit[-1] == ".":
                 self.digit.pop()
+
+    def _remove_tail(self, value):
+        if len(value) >= 3 and value[-1] == "0" and value[-2] == ".":
+            value = value[:-2]
+        return value
 
     def _digit_f(self):
         """Translate indicator contents to float."""
@@ -230,3 +255,5 @@ def font_config(unit, size=9, bold=False, italic=False):
 
 if __name__ == "__main__":
     Main()
+
+# ToDo: убрать излишнюю точность вычислений (0.2 * 0.2).
