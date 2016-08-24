@@ -39,7 +39,7 @@ class Main(tk.Tk):
         # Buttons with numbers:
         number_buttons = ([*range(7, 10)], [*range(4, 7)], [*range(1, 4)], [".", 0, "±"])
         # Buttons for mathematical operations:
-        oper_buttons = (["/", "√"], ["•", "x^y"], ["-", "%"], ["+", "="])
+        oper_buttons = (["÷", "√"], ["×", "x^y"], ["-", "%"], ["+", "="])
         self.place_buttons(number_buttons, numbuttons_frame)
         self.place_buttons(oper_buttons, funcbuttons_frame)
         numbuttons_frame.grid_columnconfigure('all', minsize=150)
@@ -86,11 +86,11 @@ class Operations:
     memory = None
     minus = False
     prev_button = None
-    funcbuttons = "+", "-", "/", "•", "x^y", "%"
+    funcbuttons = "+", "-", "÷", "×", "x^y", "%"
 
     def button_press(self, button):
-        self._debug(button)
         """Main entry point for every button press."""
+        #self._debug(button)
         res = self.digit
         if len(self.digit) < 31:
             if button == ".":
@@ -125,15 +125,13 @@ class Operations:
             elif button == "M+" or button == "M-":
                 self.calculate_memory(button[-1])
             elif button == "CE":
-                self.digit = ["0"]
                 self.minus = False
-                res = self.digit
+                res = ["0"]
             elif button == "C":
-                self.digit = ["0"]
                 self.previous = 0
                 self.operation = None
                 self.minus = False
-                res = self.digit
+                res = ["0"]
             elif button == "±":
                 if self.minus:
                     self.minus = False
@@ -146,6 +144,8 @@ class Operations:
                 res = self.digit
         if len(res) >= 3 and res[-1] == "0" and res[-2] == ".":
             res = res[:-2]
+        if button in (self.funcbuttons + ("√", "=", "CE", "C")):
+            self.digit = ["0"]
         self.prev_button = button
         return "".join(res)
 
@@ -159,14 +159,12 @@ class Operations:
                 if self.operation == "^":
                     exec("self.previous = {0} {1} {3}{2}".format(int(self.previous), self.operation, int(self._digit_f()),
                                                                  "-" if self.minus else ""))
-                    res = list(str(self.previous))
                 else:
                     exec("self.previous = {0} {1} {3}{2}".format(self.previous, self.operation, self._digit_f(),
                                                                  "-" if self.minus else ""))
-                    res = list(str(self.previous))
+                res = list(str(self.previous))
         else:
             self.previous = self._digit_f()
-        self.digit = ["0"]
         self._set_operation(operation)
         if res[0] == "-":
             self.minus = True
@@ -182,10 +180,12 @@ class Operations:
 
     def _set_operation(self, button):
         """Set contents of 'operation' class variable."""
-        if button == "•":
+        if button == "×":
             self.operation = "*"
         elif button == "x^y":
             self.operation = "^"
+        elif button == "÷":
+            self.operation = "/"
         else:
             self.operation = button
 
