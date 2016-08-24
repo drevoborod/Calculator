@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 import math
+from decimal import Decimal
+
 import tkinter as tk
 import tkinter.font as fontconfig
+
 from tkinter.messagebox import showinfo
 
 
@@ -100,7 +103,6 @@ class Operations:
 
     def button_press(self, button):
         """Main entry point for every button press."""
-        #self._debug(button)
         if self.prev_button in (self.funcbuttons + ("√", "=")):
             if button in (self.funcbuttons + ("√", "=")):
                 self.default = False
@@ -163,17 +165,22 @@ class Operations:
     def calculate(self, operation=None):
         """All mathematical operations."""
         res = self.digit
-        if self.operation == "%":
-            res = self.calculate_percent()
-        elif self.operation:
+        if self.operation:
             if self.prev_button not in self.funcbuttons:
                 try:
-                    if self.operation == "^":
-                        exec("self.previous = {0} {1} {3}{2}".format(int(self.previous), self.operation, int(self._digit_f()),
-                                                                     "-" if self.minus else ""))
-                    else:
-                        exec("self.previous = {0} {1} {3}{2}".format(self.previous, self.operation, self._digit_f(),
-                                                                     "-" if self.minus else ""))
+                    if self.operation == "-":
+                        self.previous = self.previous - self._digit_f()
+                    elif self.operation == "+":
+                        self.previous = self.previous + self._digit_f()
+                    elif self.operation == "÷":
+                        self.previous = self.previous / self._digit_f()
+                    elif self.operation == "×":
+                        self.previous = self.previous * self._digit_f()
+                    elif self.operation == "x^y":
+                        self.previous = self.previous ** self._digit_f()
+                    elif self.operation == "%":
+                        self.previous = abs(self.previous) / 100 * abs(self._digit_f())
+                        self.minus = False
                 except ZeroDivisionError:
                     showinfo("Error", "Division by zero.")
                     self.default = True
@@ -181,12 +188,9 @@ class Operations:
                     res = list(str(self.previous))
         else:
             self.previous = self._digit_f()
-        self._set_operation(operation)
+        self.operation = operation
         res = self._set_minus(res)
         return self._remove_tail(res)
-
-    def calculate_percent(self):
-        return list(str(self.previous / 100 * self._digit_f()))
 
     def calculate_memory(self, operation):
         if self.memory:
@@ -197,7 +201,7 @@ class Operations:
         if button == "×":
             self.operation = "*"
         elif button == "x^y":
-            self.operation = "^"
+            self.operation = "**"
         elif button == "÷":
             self.operation = "/"
         else:
@@ -224,22 +228,22 @@ class Operations:
         return value
 
     def _digit_f(self):
-        """Translate indicator contents to float."""
+        """Translate indicator contents to decimal."""
         res = self.digit[:]
         if self.minus:
             res.insert(0, "-")
-        return float("".join(res))
+        return Decimal("".join(res))
 
     def _debug(self, button=None):
         print("\n")
-        if button:
-            print("current button:", button)
+        #if button:
+        #    print("current button:", button)
         print("digit:", self.digit)
-        print("previous:", self.previous)
+        print("previous:", self.previous, type(self.previous))
         print("operation:", self.operation)
-        print("memory", self.memory)
+        #print("memory", self.memory)
         print("minus:", self.minus)
-        print("prev_button:", self.prev_button)
+        #print("prev_button:", self.prev_button)
 
 
 def font_config(unit, size=9, bold=False, italic=False):
@@ -256,4 +260,4 @@ def font_config(unit, size=9, bold=False, italic=False):
 if __name__ == "__main__":
     Main()
 
-# ToDo: убрать излишнюю точность вычислений (0.2 * 0.2).
+# ToDo: поддержать клавиатуру.
