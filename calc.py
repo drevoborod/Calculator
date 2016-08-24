@@ -22,7 +22,7 @@ class Main(tk.Tk):
         font_config(self.second_indicator, size=12, bold=True)
         self.second_indicator.grid(row=0, column=0, pady=5, sticky='e')
         # Main Indicator:
-        self.indicator = tk.Label(self, relief='sunken', width=30, text=self.engine.digit, anchor='e', padx=10)
+        self.indicator = tk.Label(self, relief='sunken', width=33, text=self.engine.digit, anchor='e', padx=10)
         font_config(self.indicator, size=20)
         self.indicator.grid(row=0, column=1, columnspan=7, padx=5, pady=5)
         # Different buttons:
@@ -47,7 +47,6 @@ class Main(tk.Tk):
         self.place_buttons(oper_buttons, funcbuttons_frame)
         numbuttons_frame.grid_columnconfigure('all', minsize=150)
         funcbuttons_frame.grid_columnconfigure('all', minsize=90)
-        # Превращение списка списков в один список: [x for sublist in l for x in sublist]
         for number in range(0, 10):
             self.bind("%d" % number, lambda e, x=number: self.press_button(x))
         self.bind("<BackSpace>", lambda e: self.press_button("←"))
@@ -120,8 +119,8 @@ class Operations:
     funcbuttons = "+", "-", "÷", "×", "x^y", "%"
 
     def button_press(self, button):
-        """Main entry point for every button press."""
-        if self.prev_button in (self.funcbuttons + ("√", "=")):
+        """Main entry point for every button press except memory."""
+        if self.prev_button in (self.funcbuttons + ("√", "=", "MR")):
             if button in (self.funcbuttons + ("√", "=")):
                 self.default = False
             else:
@@ -181,6 +180,7 @@ class Operations:
             self.calculate_memory(button[-1])
         if self.prev_button in (self.funcbuttons + ("√", "=")):
             self.default = True
+        self.prev_button = button
 
     def calculate(self, operation=None):
         """All mathematical operations."""
@@ -261,9 +261,9 @@ class Operations:
         print("digit:", self.digit)
         print("previous:", self.previous, type(self.previous))
         print("operation:", self.operation)
-        #print("memory", self.memory)
+        print("memory", self.memory)
         print("minus:", self.minus)
-        #print("prev_button:", self.prev_button)
+        print("prev_button:", self.prev_button)
 
 
 def font_config(unit, size=9, bold=False, italic=False):
