@@ -54,6 +54,7 @@ class Main(tk.Tk):
         self.bind("*", lambda e: self.press_button("×"))
         for number in ("-", "+", "%", "=", "."):
             self.bind("%s" % number, lambda e, x=number: self.press_button(x))
+        self.bind(",", lambda e: self.press_button("."))
         self.bind("<Escape>", lambda e: self.press_button("C"))
         self.bind("<Return>", lambda e: self.press_button("="))
         self.bind("<Control-c>", lambda e: self.copy())
@@ -119,7 +120,7 @@ class Operations:
     funcbuttons = "+", "-", "÷", "×", "x^y", "%"
 
     def button_press(self, button):
-        """Main entry point for every button press except memory."""
+        """Main entry point for every button press except buttons for memory functions."""
         if self.prev_button in (self.funcbuttons + ("√", "=", "MR")):
             if button in (self.funcbuttons + ("√", "=")):
                 self.default = False
@@ -167,6 +168,7 @@ class Operations:
         self.prev_button = button
 
     def memory_actions(self, button):
+        """Function for all memory buttons."""
         if button == "M":
             self.memory = self._digit_f()
         elif button == "MC":
@@ -213,8 +215,12 @@ class Operations:
         return self._remove_tail(res)
 
     def calculate_memory(self, operation):
+        """For buttons 'M+' and 'M-'."""
         if self.memory:
-            exec("self.memory = {0} {1} {2}".format(self.memory, operation, self._digit_f()))
+            if operation == "+":
+                self.memory = self.memory + self._digit_f()
+            else:
+                self.memory = self.memory - self._digit_f()
 
     def _set_operation(self, button):
         """Set contents of 'operation' class variable."""
